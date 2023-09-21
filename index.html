@@ -94,7 +94,7 @@ function preventDefaults(e) {
 
 let gridImg = undefined;
 
-function handleDrop(event)
+async function handleDrop(event)
 {
     console.log("Handling file drop event");
     const data = event.dataTransfer;
@@ -108,7 +108,7 @@ function handleDrop(event)
     // convert to an img
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onloadend = function() {
+    reader.onloadend = async function() {
         gridImg = document.createElement('img');
         gridImg.src = reader.result;
         gridImg.classList.add("grid_pic");
@@ -121,6 +121,10 @@ function handleDrop(event)
         gsImg.id = "gsImg";
         document.getElementById('grid_picture').appendChild(gridImg);
         document.getElementById('gs_picture').appendChild(gsImg);
+
+        resizeGrid();
+
+        await new Promise(r => setTimeout(r, 1000));
 
         resizeGrid();
     };
