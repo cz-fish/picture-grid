@@ -52,7 +52,14 @@
     </head>
     <body>
         <div class="controls" id="controls">
-            <div id="drop_zone"><p>Drag and drop picture here</p></div>
+            <div id="drop_zone">
+                <p>Drag and drop picture here</p>
+                <p>Or</p>
+                <p>Browse to select a picture</p>
+                <form>
+                    <input type="file" id="fileUpload" multiple accept="image/*" onchange="handleFiles(this.files);">
+                </form>
+            </div>
         </div>
         <div class="pictures" id="pictures">
             <div id="grid_picture"></div>
@@ -98,12 +105,21 @@ async function handleDrop(event)
 {
     console.log("Handling file drop event");
     const data = event.dataTransfer;
-    const files = [...data.files];
+    await handleFiles(data.files);
+}
+
+async function handleFiles(filelist)
+{
+    const files = [...filelist];
     if (files.length < 1) {
         console.log("No files dropped");
         return;
     }
-    const file = files[0];
+    await openFile(files[0]);
+}
+
+async function openFile(file)
+{
     document.getElementById("controls").style.display = "none";
     document.getElementById("pictures").style.display = "block";
     //dropArea.style.display = 'none';
