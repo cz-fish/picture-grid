@@ -6,7 +6,7 @@
 #drop_zone {
     border: 1px solid black;
     width: 100%;
-    height: 100px;
+    height: 95%;
     margin-top: 30px;
     background-color: beige;
     text-align: center;
@@ -20,7 +20,7 @@
 .pictures {
     width: 100%;
     margin-top: 50px;
-
+    display: none;
 }
 
 .pictures div {
@@ -51,10 +51,10 @@
         </style>
     </head>
     <body>
-        <div class="controls">
+        <div class="controls" id="controls">
             <div id="drop_zone"><p>Drag and drop picture here</p></div>
         </div>
-        <div class="pictures">
+        <div class="pictures" id="pictures">
             <div id="grid_picture"></div>
             <img src="grid.png" id="grid" />
             <div id="gs_picture"></div>
@@ -104,7 +104,9 @@ async function handleDrop(event)
         return;
     }
     const file = files[0];
-    dropArea.style.display = 'none';
+    document.getElementById("controls").style.display = "none";
+    document.getElementById("pictures").style.display = "block";
+    //dropArea.style.display = 'none';
     // convert to an img
     const reader = new FileReader();
     reader.readAsDataURL(file);
