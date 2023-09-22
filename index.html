@@ -75,6 +75,7 @@ p.reset {
             <div id="grid_picture"></div>
             <img src="grid.png" id="grid" />
             <div id="gs_picture"></div>
+            <p id="image_info"></p>
             <p class="reset"><a onclick="newPicture()">New picture</a></p>
         </div>
         <script language="javascript">
@@ -133,12 +134,16 @@ async function openFile(file)
 {
     document.getElementById("controls").style.display = "none";
     document.getElementById("pictures").style.display = "block";
-    //dropArea.style.display = 'none';
     // convert to an img
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onloadend = async function() {
         gridImg = document.createElement('img');
+        gridImg.onload = function() {
+            // functions that require iamge to be completely loaded
+            resizeGrid();
+            updateImageInfo(gridImg);
+        };
         gridImg.src = reader.result;
         gridImg.classList.add("grid_pic");
         gridImg.classList.add("show_pic");
@@ -150,12 +155,6 @@ async function openFile(file)
         gsImg.id = "gsImg";
         document.getElementById('grid_picture').appendChild(gridImg);
         document.getElementById('gs_picture').appendChild(gsImg);
-
-        resizeGrid();
-
-        await new Promise(r => setTimeout(r, 1000));
-
-        resizeGrid();
     };
 }
 
@@ -177,6 +176,30 @@ function newPicture()
 
     document.getElementById("controls").style.display = "block";
     document.getElementById("pictures").style.display = "none";
+}
+
+function gcd(x, y)
+{
+    if (x === 0) {
+        return y;
+    }
+    return gcd(y % x, x);
+}
+
+function reduceFraction(x, y)
+{
+    const commonDivisor = gcd(x, y);
+    return [x / commonDivisor, y / commonDivisor];
+}
+
+function updateImageInfo(element)
+{
+    // naturalWidth/Height - the original image dimensions before scaling to the browser size
+    const width = element.naturalWidth;
+    const height = element.naturalHeight;
+    const ratio = reduceFraction(width, height);
+    console.log(`image width ${width}, height ${height}, ratio ${ratio[0]}:${ratio[1]} (${width/height})`);
+    document.getElementById("image_info").innerText = `Image aspect ratio ${ratio[0]}:${ratio[1]}`;
 }
 
         </script>
