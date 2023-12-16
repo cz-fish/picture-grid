@@ -23,30 +23,15 @@
     display: none;
 }
 
-.pictures div {
-    max-width: 40%;
-    display: inline;
-}
-
-#gs_picture img {
-    filter: saturate(0%);
-    margin-left: 5%;
-}
-
-#grid {
-    position: relative;
+.hidden {
+    display: none;
 }
 
 .grid_pic {
-    position: absolute;
-    width: 40%;
-    z-index: -1;
     border: 1px solid black;
 }
 
 .gs_pic {
-    position: absolute;
-    width: 40%;
     border: 1px solid black;
 }
 
@@ -57,6 +42,7 @@ p.reset {
     cursor: pointer;
     text-decoration-line: underline;
 }
+
 
         </style>
     </head>
@@ -72,12 +58,28 @@ p.reset {
             </div>
         </div>
         <div class="pictures" id="pictures">
-            <div id="grid_picture"></div>
-            <img src="grid.png" id="grid" />
-            <div id="gs_picture"></div>
+            <canvas id="grid_canvas" class="grid_pic"></canvas>
+            <canvas id="gray_canvas" class="gs_pic"></canvas>
             <p id="image_info"></p>
+            <div class="parameters" id="parameters">
+                <label for="stopCount">Grid density:</label>
+                <input type="range" min="3" max="20" value="5" class="slider" id="stopCount" name="stopCount"
+                    oninput="resizeGrid()"
+                    onchange="resizeGrid()"/>
+                <label for="thickness">Thickness:</label>
+                <input type="range" min="1" max="5" value="2" class="slider" id="thickness" name="thickness"
+                    oninput="resizeGrid()"
+                    onchange="resizeGrid()"/>
+                <input type="checkbox" id="darkCheck" name="darkCheck" onclick="resizeGrid()">
+                <label for="darkCheck">Dark lines</label>,
+                <input type="checkbox" id="forwardDiag" name="forwardDiag" onclick="resizeGrid()" checked="true">
+                <label for="forwardDiag">Forward diagonals</label>,
+                <input type="checkbox" id="backwardDiag" name="backwardDiag" onclick="resizeGrid()">
+                <label for="backwardDiag">Backward diagonals</label>,
+            </div>
             <p class="reset"><a onclick="newPicture()">New picture</a></p>
         </div>
+        <div class="hidden" id="uploaded_picture"></div>
         <script language="javascript">
 
 const dropArea = document.getElementById("drop_zone");
@@ -111,7 +113,7 @@ function preventDefaults(e) {
     e.stopPropagation();
 }
 
-let gridImg = undefined;
+let uploadedImg = undefined;
 
 async function handleDrop(event)
 {
@@ -138,41 +140,146 @@ async function openFile(file)
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onloadend = async function() {
-        gridImg = document.createElement('img');
-        gridImg.onload = function() {
+        uploadedImg = document.createElement('img');
+        uploadedImg.onload = function() {
             // functions that require iamge to be completely loaded
             resizeGrid();
-            updateImageInfo(gridImg);
+            updateImageInfo();
         };
-        gridImg.src = reader.result;
-        gridImg.classList.add("grid_pic");
-        gridImg.classList.add("show_pic");
-        gridImg.id = "gridImg";
-        const gsImg = document.createElement('img');
-        gsImg.src = reader.result;
-        gsImg.classList.add("gs_pic");
-        gsImg.classList.add("show_pic");
-        gsImg.id = "gsImg";
-        document.getElementById('grid_picture').appendChild(gridImg);
-        document.getElementById('gs_picture').appendChild(gsImg);
+        uploadedImg.src = reader.result;
+        uploadedImg.id = "gridImg";
+        document.getElementById('uploaded_picture').appendChild(uploadedImg);
     };
 }
 
 function resizeGrid()
 {
-    if (!gridImg) {
+    if (!uploadedImg) {
         return;
     }
-    const overlay = document.getElementById("grid");
-    overlay.style.width = gridImg.clientWidth;
-    overlay.style.height = gridImg.clientHeight;
+
+    const canvas = document.getElementById('grid_canvas');
+    const context = canvas.getContext('2d');
+
+    const scrWidth = window.innerWidth;
+    const scrHeight = window.innerHeight;
+    const imgWidth = uploadedImg.naturalWidth;
+    const imgHeight = uploadedImg.naturalHeight;
+    const aspect = imgHeight / imgWidth;
+
+    // Determine canvas dimensions so that the two canvases fit on the screen
+    // FIXME: the buffers are just guessed. They should be calculated somehow
+    const hor_buffer = 100;
+    const ver_buffer = 200;
+    let canvasWidth = (scrWidth - hor_buffer) / 2;
+    let canvasHeight = aspect * canvasWidth;
+    if (canvasHeight > scrHeight - ver_buffer) {
+        canvasHeight = scrHeight - ver_buffer;
+        canvasWidth = canvasHeight / aspect;
+    }
+
+    //console.log(`screen ${scrWidth}, ${scrHeight}, canvas ${canvasWidth}, ${canvasHeight}, img ${imgWidth}, ${imgHeight}`);
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    context.drawImage(
+        uploadedImg,
+        0, 0, imgWidth, imgHeight,
+        0, 0, canvasWidth, canvasHeight
+    );
+
+    draw_grid(context, canvasWidth, canvasHeight);
+
+    const gray_canvas = document.getElementById('gray_canvas');
+    gray_canvas.width = canvasWidth;
+    gray_canvas.height = canvasHeight;
+
+    const gray_context = gray_canvas.getContext('2d');
+    gray_context.filter = 'grayscale(1)';
+    gray_context.drawImage(
+        uploadedImg,
+        0, 0, imgWidth, imgHeight,
+        0, 0, canvasWidth, canvasHeight
+    );
+}
+
+function draw_grid(context, width, height)
+{
+    // TODO: tweakable parameters
+    const n_stops = parseInt(document.getElementById('stopCount').value) + 2;
+    //const n_stops = 7 + 2;
+    const color = document.getElementById('darkCheck').checked ? 'black' : 'white';
+    const horizontal = true;
+    const vertical = true;
+    const forward_diagonal = document.getElementById('forwardDiag').checked;
+    const backward_diagonal = document.getElementById('backwardDiag').checked;
+    const thickness = parseInt(document.getElementById('thickness').value);
+
+    const d_x = width / (n_stops - 1);
+    const d_y = height / (n_stops - 1);
+    const h_coords = [...Array(n_stops).keys()].map(v => v * d_x);
+    const v_coords = [...Array(n_stops).keys()].map(v => v * d_y);
+    context.strokeStyle = color;
+    context.lineWidth = thickness;
+
+    if (horizontal) {
+        // horizontal lines
+        context.beginPath();
+        for (let i = 1; i < n_stops - 1; i++) {
+            context.moveTo(0, v_coords[i]);
+            context.lineTo(width, v_coords[i]);
+        }
+        context.stroke();
+    }
+    if (vertical) {
+        // vertical lines
+        context.beginPath();
+        for (let i = 1; i < n_stops - 1; i++) {
+            context.moveTo(h_coords[i], 0);
+            context.lineTo(h_coords[i], height);
+        }
+        context.stroke();
+    }
+    if (forward_diagonal) {
+        // diagonals from bottom left to top right
+        context.beginPath();
+        for (let i = 1; i < n_stops; i++) {
+            context.moveTo(0, v_coords[i]);
+            context.lineTo(h_coords[i], 0);
+            context.moveTo(h_coords[i], height);
+            context.lineTo(width, v_coords[i]);
+        }
+        context.stroke();
+    }
+    if (backward_diagonal) {
+        // diagonals from bottom right to top left
+        context.beginPath();
+        for (let i = 0; i < n_stops; i++) {
+            context.moveTo(h_coords[i], 0);
+            context.lineTo(width, height - v_coords[i]);
+            context.moveTo(0, v_coords[i]);
+            context.lineTo(width - h_coords[i], height);
+        }
+        context.stroke();
+    }
 }
 
 function newPicture()
 {
-    [... document.getElementsByClassName("show_pic")].forEach(element => {
-        element.parentElement.removeChild(element);
-    });
+    const canvasLeft = document.getElementById('grid_canvas');
+    const contextLeft = canvasLeft.getContext('2d');
+    contextLeft.clearRect(0, 0, canvasLeft.width, canvasLeft.height);
+
+    const canvasRight = document.getElementById('gray_canvas');
+    const contextRight = canvasRight.getContext('2d');
+    contextRight.clearRect(0, 0, canvasRight.width, canvasRight.height);
+
+    const uploaded = document.getElementById('uploaded_picture');
+    while (uploaded.firstChild) {
+        uploaded.removeChild(uploaded.lastChild);
+    }
+    uploadedImg = undefined;
 
     document.getElementById("controls").style.display = "block";
     document.getElementById("pictures").style.display = "none";
@@ -192,13 +299,16 @@ function reduceFraction(x, y)
     return [x / commonDivisor, y / commonDivisor];
 }
 
-function updateImageInfo(element)
+function updateImageInfo()
 {
+    if (!uploadedImg) {
+        return;
+    }
     // naturalWidth/Height - the original image dimensions before scaling to the browser size
-    const width = element.naturalWidth;
-    const height = element.naturalHeight;
+    const width = uploadedImg.naturalWidth;
+    const height = uploadedImg.naturalHeight;
     const ratio = reduceFraction(width, height);
-    console.log(`image width ${width}, height ${height}, ratio ${ratio[0]}:${ratio[1]} (${width/height})`);
+    //console.log(`image width ${width}, height ${height}, ratio ${ratio[0]}:${ratio[1]} (${width/height})`);
     document.getElementById("image_info").innerText = `Image aspect ratio ${ratio[0]}:${ratio[1]}`;
 }
 
