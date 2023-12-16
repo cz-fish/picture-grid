@@ -61,6 +61,22 @@ p.reset {
             <canvas id="grid_canvas" class="grid_pic"></canvas>
             <canvas id="gray_canvas" class="gs_pic"></canvas>
             <p id="image_info"></p>
+            <div class="parameters" id="parameters">
+                <label for="stopCount">Grid density:</label>
+                <input type="range" min="3" max="20" value="5" class="slider" id="stopCount" name="stopCount"
+                    oninput="resizeGrid()"
+                    onchange="resizeGrid()"/>
+                <label for="thickness">Thickness:</label>
+                <input type="range" min="1" max="5" value="2" class="slider" id="thickness" name="thickness"
+                    oninput="resizeGrid()"
+                    onchange="resizeGrid()"/>
+                <input type="checkbox" id="darkCheck" name="darkCheck" onclick="resizeGrid()">
+                <label for="darkCheck">Dark lines</label>,
+                <input type="checkbox" id="forwardDiag" name="forwardDiag" onclick="resizeGrid()" checked="true">
+                <label for="forwardDiag">Forward diagonals</label>,
+                <input type="checkbox" id="backwardDiag" name="backwardDiag" onclick="resizeGrid()">
+                <label for="backwardDiag">Backward diagonals</label>,
+            </div>
             <p class="reset"><a onclick="newPicture()">New picture</a></p>
         </div>
         <div class="hidden" id="uploaded_picture"></div>
@@ -151,14 +167,18 @@ function resizeGrid()
     const imgHeight = uploadedImg.naturalHeight;
     const aspect = imgHeight / imgWidth;
 
-    let canvasWidth = (scrWidth - 100) / 2;
+    // Determine canvas dimensions so that the two canvases fit on the screen
+    // FIXME: the buffers are just guessed. They should be calculated somehow
+    const hor_buffer = 100;
+    const ver_buffer = 200;
+    let canvasWidth = (scrWidth - hor_buffer) / 2;
     let canvasHeight = aspect * canvasWidth;
-    if (canvasHeight > scrHeight - 160) {
-        canvasHeight = scrHeight - 160;
+    if (canvasHeight > scrHeight - ver_buffer) {
+        canvasHeight = scrHeight - ver_buffer;
         canvasWidth = canvasHeight / aspect;
     }
 
-    console.log(`screen ${scrWidth}, ${scrHeight}, canvas ${canvasWidth}, ${canvasHeight}, img ${imgWidth}, ${imgHeight}`);
+    //console.log(`screen ${scrWidth}, ${scrHeight}, canvas ${canvasWidth}, ${canvasHeight}, img ${imgWidth}, ${imgHeight}`);
 
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -187,14 +207,14 @@ function resizeGrid()
 function draw_grid(context, width, height)
 {
     // TODO: tweakable parameters
-    const n_stops = 3 + 2;
+    const n_stops = parseInt(document.getElementById('stopCount').value) + 2;
     //const n_stops = 7 + 2;
-    const color = 'white';
+    const color = document.getElementById('darkCheck').checked ? 'black' : 'white';
     const horizontal = true;
     const vertical = true;
-    const forward_diagonal = true;
-    const backward_diagonal = false;
-    const thickness = 2;
+    const forward_diagonal = document.getElementById('forwardDiag').checked;
+    const backward_diagonal = document.getElementById('backwardDiag').checked;
+    const thickness = parseInt(document.getElementById('thickness').value);
 
     const d_x = width / (n_stops - 1);
     const d_y = height / (n_stops - 1);
@@ -247,6 +267,14 @@ function draw_grid(context, width, height)
 
 function newPicture()
 {
+    const canvasLeft = document.getElementById('grid_canvas');
+    const contextLeft = canvasLeft.getContext('2d');
+    contextLeft.clearRect(0, 0, canvasLeft.width, canvasLeft.height);
+
+    const canvasRight = document.getElementById('gray_canvas');
+    const contextRight = canvasRight.getContext('2d');
+    contextRight.clearRect(0, 0, canvasRight.width, canvasRight.height);
+
     const uploaded = document.getElementById('uploaded_picture');
     while (uploaded.firstChild) {
         uploaded.removeChild(uploaded.lastChild);
@@ -280,7 +308,7 @@ function updateImageInfo()
     const width = uploadedImg.naturalWidth;
     const height = uploadedImg.naturalHeight;
     const ratio = reduceFraction(width, height);
-    console.log(`image width ${width}, height ${height}, ratio ${ratio[0]}:${ratio[1]} (${width/height})`);
+    //console.log(`image width ${width}, height ${height}, ratio ${ratio[0]}:${ratio[1]} (${width/height})`);
     document.getElementById("image_info").innerText = `Image aspect ratio ${ratio[0]}:${ratio[1]}`;
 }
 
