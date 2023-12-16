@@ -25,7 +25,11 @@
 
 .pictures div {
     max-width: 40%;
-    display: inline;
+    display: block;
+}
+
+.hidden {
+    display: none;
 }
 
 #gs_picture img {
@@ -38,15 +42,10 @@
 }
 
 .grid_pic {
-    position: absolute;
-    width: 40%;
-    z-index: -1;
     border: 1px solid black;
 }
 
 .gs_pic {
-    position: absolute;
-    width: 40%;
     border: 1px solid black;
 }
 
@@ -57,6 +56,7 @@ p.reset {
     cursor: pointer;
     text-decoration-line: underline;
 }
+
 
         </style>
     </head>
@@ -72,12 +72,12 @@ p.reset {
             </div>
         </div>
         <div class="pictures" id="pictures">
-            <div id="grid_picture"></div>
-            <img src="grid.png" id="grid" />
-            <div id="gs_picture"></div>
+            <canvas id="grid_canvas" class="grid_pic"></canvas>
+            <canvas id="gray_canvas" class="gs_pic"></canvas>
             <p id="image_info"></p>
             <p class="reset"><a onclick="newPicture()">New picture</a></p>
         </div>
+        <div class="hidden" id="uploaded_picture"></div>
         <script language="javascript">
 
 const dropArea = document.getElementById("drop_zone");
@@ -111,7 +111,7 @@ function preventDefaults(e) {
     e.stopPropagation();
 }
 
-let gridImg = undefined;
+let uploadedImg = undefined;
 
 async function handleDrop(event)
 {
@@ -138,38 +138,75 @@ async function openFile(file)
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onloadend = async function() {
-        gridImg = document.createElement('img');
-        gridImg.onload = function() {
+        uploadedImg = document.createElement('img');
+        uploadedImg.onload = function() {
             // functions that require iamge to be completely loaded
             resizeGrid();
-            updateImageInfo(gridImg);
+            updateImageInfo();
         };
-        gridImg.src = reader.result;
-        gridImg.classList.add("grid_pic");
-        gridImg.classList.add("show_pic");
-        gridImg.id = "gridImg";
-        const gsImg = document.createElement('img');
-        gsImg.src = reader.result;
-        gsImg.classList.add("gs_pic");
-        gsImg.classList.add("show_pic");
-        gsImg.id = "gsImg";
-        document.getElementById('grid_picture').appendChild(gridImg);
-        document.getElementById('gs_picture').appendChild(gsImg);
+        uploadedImg.src = reader.result;
+        uploadedImg.id = "gridImg";
+        document.getElementById('uploaded_picture').appendChild(uploadedImg);
     };
 }
 
 function resizeGrid()
 {
-    if (!gridImg) {
+    if (!uploadedImg) {
         return;
     }
+
+    const canvas = document.getElementById('grid_canvas');
+    const context = canvas.getContext('2d');
+
+    const scrWidth = window.innerWidth;
+    const scrHeight = window.innerHeight;
+    const imgWidth = uploadedImg.naturalWidth;
+    const imgHeight = uploadedImg.naturalHeight;
+    const aspect = imgHeight / imgWidth;
+
+    let canvasWidth = (scrWidth - 100) / 2;
+    let canvasHeight = aspect * canvasWidth;
+    if (canvasHeight > scrHeight - 160) {
+        canvasHeight = scrHeight - 160;
+        canvasWidth = canvasHeight / aspect;
+    }
+
+    console.log(`screen ${scrWidth}, ${scrHeight}, canvas ${canvasWidth}, ${canvasHeight}, img ${imgWidth}, ${imgHeight}`);
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    //context.fillStyle = 'blue';
+    //context.fillRect(0, 0, canvasWidth, canvasHeight);
+    context.drawImage(
+        uploadedImg,
+        0, 0, imgWidth, imgHeight,
+        0, 0, canvasWidth, canvasHeight
+    );
+
+    const gray_canvas = document.getElementById('gray_canvas');
+    gray_canvas.width = canvasWidth;
+    gray_canvas.height = canvasHeight;
+
+    const gray_context = gray_canvas.getContext('2d');
+    gray_context.filter = 'grayscale(1)';
+    gray_context.drawImage(
+        uploadedImg,
+        0, 0, imgWidth, imgHeight,
+        0, 0, canvasWidth, canvasHeight
+    );
+
+    /*
     const overlay = document.getElementById("grid");
     overlay.style.width = gridImg.clientWidth;
     overlay.style.height = gridImg.clientHeight;
+    */
 }
 
 function newPicture()
 {
+    // FIXME: remove everything under 'uploaded_picture'
     [... document.getElementsByClassName("show_pic")].forEach(element => {
         element.parentElement.removeChild(element);
     });
@@ -192,11 +229,14 @@ function reduceFraction(x, y)
     return [x / commonDivisor, y / commonDivisor];
 }
 
-function updateImageInfo(element)
+function updateImageInfo()
 {
+    if (!uploadedImg) {
+        return;
+    }
     // naturalWidth/Height - the original image dimensions before scaling to the browser size
-    const width = element.naturalWidth;
-    const height = element.naturalHeight;
+    const width = uploadedImg.naturalWidth;
+    const height = uploadedImg.naturalHeight;
     const ratio = reduceFraction(width, height);
     console.log(`image width ${width}, height ${height}, ratio ${ratio[0]}:${ratio[1]} (${width/height})`);
     document.getElementById("image_info").innerText = `Image aspect ratio ${ratio[0]}:${ratio[1]}`;
