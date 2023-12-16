@@ -23,22 +23,8 @@
     display: none;
 }
 
-.pictures div {
-    max-width: 40%;
-    display: block;
-}
-
 .hidden {
     display: none;
-}
-
-#gs_picture img {
-    filter: saturate(0%);
-    margin-left: 5%;
-}
-
-#grid {
-    position: relative;
 }
 
 .grid_pic {
@@ -177,13 +163,13 @@ function resizeGrid()
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
-    //context.fillStyle = 'blue';
-    //context.fillRect(0, 0, canvasWidth, canvasHeight);
     context.drawImage(
         uploadedImg,
         0, 0, imgWidth, imgHeight,
         0, 0, canvasWidth, canvasHeight
     );
+
+    draw_grid(context, canvasWidth, canvasHeight);
 
     const gray_canvas = document.getElementById('gray_canvas');
     gray_canvas.width = canvasWidth;
@@ -196,20 +182,76 @@ function resizeGrid()
         0, 0, imgWidth, imgHeight,
         0, 0, canvasWidth, canvasHeight
     );
+}
 
-    /*
-    const overlay = document.getElementById("grid");
-    overlay.style.width = gridImg.clientWidth;
-    overlay.style.height = gridImg.clientHeight;
-    */
+function draw_grid(context, width, height)
+{
+    // TODO: tweakable parameters
+    const n_stops = 3 + 2;
+    //const n_stops = 7 + 2;
+    const color = 'white';
+    const horizontal = true;
+    const vertical = true;
+    const forward_diagonal = true;
+    const backward_diagonal = false;
+    const thickness = 2;
+
+    const d_x = width / (n_stops - 1);
+    const d_y = height / (n_stops - 1);
+    const h_coords = [...Array(n_stops).keys()].map(v => v * d_x);
+    const v_coords = [...Array(n_stops).keys()].map(v => v * d_y);
+    context.strokeStyle = color;
+    context.lineWidth = thickness;
+
+    if (horizontal) {
+        // horizontal lines
+        context.beginPath();
+        for (let i = 1; i < n_stops - 1; i++) {
+            context.moveTo(0, v_coords[i]);
+            context.lineTo(width, v_coords[i]);
+        }
+        context.stroke();
+    }
+    if (vertical) {
+        // vertical lines
+        context.beginPath();
+        for (let i = 1; i < n_stops - 1; i++) {
+            context.moveTo(h_coords[i], 0);
+            context.lineTo(h_coords[i], height);
+        }
+        context.stroke();
+    }
+    if (forward_diagonal) {
+        // diagonals from bottom left to top right
+        context.beginPath();
+        for (let i = 1; i < n_stops; i++) {
+            context.moveTo(0, v_coords[i]);
+            context.lineTo(h_coords[i], 0);
+            context.moveTo(h_coords[i], height);
+            context.lineTo(width, v_coords[i]);
+        }
+        context.stroke();
+    }
+    if (backward_diagonal) {
+        // diagonals from bottom right to top left
+        context.beginPath();
+        for (let i = 0; i < n_stops; i++) {
+            context.moveTo(h_coords[i], 0);
+            context.lineTo(width, height - v_coords[i]);
+            context.moveTo(0, v_coords[i]);
+            context.lineTo(width - h_coords[i], height);
+        }
+        context.stroke();
+    }
 }
 
 function newPicture()
 {
-    // FIXME: remove everything under 'uploaded_picture'
-    [... document.getElementsByClassName("show_pic")].forEach(element => {
-        element.parentElement.removeChild(element);
-    });
+    const uploaded = document.getElementById('uploaded_picture');
+    while (uploaded.firstChild) {
+        uploaded.removeChild(uploaded.lastChild);
+    }
+    uploadedImg = undefined;
 
     document.getElementById("controls").style.display = "block";
     document.getElementById("pictures").style.display = "none";
