@@ -83,8 +83,10 @@ p.reset {
                 <input type="range" min="1" max="5" value="2" class="slider" id="thickness" name="thickness"
                     oninput="resizeGrid()"
                     onchange="resizeGrid()"/>
-                <input type="checkbox" id="darkCheck" name="darkCheck" onclick="resizeGrid()">
-                <label for="darkCheck">Dark lines</label>,
+                <label for="gridColor">Colour:<label>
+                <input type="color" id="gridColor" name="gridColor" value="#ffffff"
+                    oninput="resizeGrid()"
+                    onchange="resizeGrid()"/>
                 <input type="checkbox" id="forwardDiag" name="forwardDiag" onclick="resizeGrid()" checked="true">
                 <label for="forwardDiag">Forward diagonals</label>,
                 <input type="checkbox" id="backwardDiag" name="backwardDiag" onclick="resizeGrid()">
@@ -222,7 +224,7 @@ function resizeGrid()
 function drawGrid(context, width, height)
 {
     const n_stops = parseInt(document.getElementById('stopCount').value) + 2;
-    const color = document.getElementById('darkCheck').checked ? 'black' : 'white';
+    const color = document.getElementById('gridColor').value;
     const horizontal = true;
     const vertical = true;
     const forward_diagonal = document.getElementById('forwardDiag').checked;
