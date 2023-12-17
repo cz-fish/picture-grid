@@ -89,6 +89,7 @@ p.reset {
                 <label for="forwardDiag">Forward diagonals</label>,
                 <input type="checkbox" id="backwardDiag" name="backwardDiag" onclick="resizeGrid()">
                 <label for="backwardDiag">Backward diagonals</label>,
+                <button id="btnDownload" onclick="downloadGrid()">Download grid</button>
             </div>
             <p class="reset"><a onclick="newPicture()">New picture</a></p>
         </div>
@@ -203,7 +204,7 @@ function resizeGrid()
         0, 0, canvasWidth, canvasHeight
     );
 
-    draw_grid(context, canvasWidth, canvasHeight);
+    drawGrid(context, canvasWidth, canvasHeight);
 
     const gray_canvas = document.getElementById('gray_canvas');
     gray_canvas.width = canvasWidth;
@@ -218,11 +219,9 @@ function resizeGrid()
     );
 }
 
-function draw_grid(context, width, height)
+function drawGrid(context, width, height)
 {
-    // TODO: tweakable parameters
     const n_stops = parseInt(document.getElementById('stopCount').value) + 2;
-    //const n_stops = 7 + 2;
     const color = document.getElementById('darkCheck').checked ? 'black' : 'white';
     const horizontal = true;
     const vertical = true;
@@ -324,6 +323,29 @@ function updateImageInfo()
     const ratio = reduceFraction(width, height);
     //console.log(`image width ${width}, height ${height}, ratio ${ratio[0]}:${ratio[1]} (${width/height})`);
     document.getElementById("image_info").innerText = `Image aspect ratio ${ratio[0]}:${ratio[1]}`;
+}
+
+function downloadGrid()
+{
+    const tmpCanvas = document.createElement("canvas");
+    const gridCanvas = document.getElementById("grid_canvas");
+    tmpCanvas.width = gridCanvas.width;
+    tmpCanvas.height = gridCanvas.height;
+    const context = tmpCanvas.getContext("2d");
+    drawGrid(context, tmpCanvas.width, tmpCanvas.height);
+
+    const stopCount = parseInt(document.getElementById('stopCount').value) + 1;
+    // https://stackoverflow.com/a/18480879
+    const link = document.createElement("a");
+    link.download = `grid${stopCount}x${stopCount}.png`;
+    link.href = tmpCanvas.toDataURL();
+    if (document.createEvent) {
+        const event = document.createEvent("MouseEvents");
+        event.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, 0, null);
+        link.dispatchEvent(event);
+    } else if (link.fireEvent) {
+        link.fireEvent("onclick");
+    }
 }
 
         </script>
