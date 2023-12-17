@@ -43,6 +43,12 @@ p.reset {
     text-decoration-line: underline;
 }
 
+.ribbon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    border: 0;
+}
 
         </style>
     </head>
@@ -55,6 +61,13 @@ p.reset {
                 <form>
                     <input type="file" id="fileUpload" multiple accept="image/*" onchange="handleFiles(this.files);">
                 </form>
+            </div>
+
+            <a href="https://github.com/cz-fish/picture-grid">
+                <img decoding="async" width="149" height="149" src="https://github.blog/wp-content/uploads/2008/12/forkme_right_darkblue_121621.png?resize=149%2C149" class="ribbon" alt="Fork me on GitHub" loading="lazy" data-recalc-dims="1">
+            </a>
+            <div class="copyright">
+                <p>(c) 2023 Filip Simek</p>
             </div>
         </div>
         <div class="pictures" id="pictures">
@@ -80,6 +93,7 @@ p.reset {
             <p class="reset"><a onclick="newPicture()">New picture</a></p>
         </div>
         <div class="hidden" id="uploaded_picture"></div>
+
         <script language="javascript">
 
 const dropArea = document.getElementById("drop_zone");
